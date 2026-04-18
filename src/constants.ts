@@ -24,19 +24,7 @@ export const SQUARES: SquareData[] = [
   { id: 21, word: 'Cloud', icon: '☁️', plural: 'Clouds', ruleSuffix: 's' },
   { id: 22, word: 'Brush', icon: '🖌️', plural: 'Brushes', ruleSuffix: 'es' },
   { id: 23, word: 'Bird', icon: '🐦', plural: 'Birds', ruleSuffix: 's' },
-  { id: 24, word: 'Finish', icon: '👑', plural: 'Finishes', ruleSuffix: 'es' },
+  { id: 24, word: 'Tomato', icon: '🍅', plural: 'Tomatoes', ruleSuffix: 'es' },
 ];
-
-export const SNAKES: Record<number, number> = {
-  11: 4,
-  18: 7,
-  22: 12,
-};
-
-export const LADDERS: Record<number, number> = {
-  3: 10,
-  8: 15,
-  14: 21,
-};
 
 export const PLAYER_COLORS = ['#3B82F6', '#EF4444']; 

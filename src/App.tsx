@@ -7,7 +7,7 @@ import Dice from './components/Dice';
 import ChallengeModal from './components/ChallengeModal';
 import ScoreBoard from './components/ScoreBoard';
 import { Player, GameState, RoundRecord } from './types';
-import { SQUARES, SNAKES, LADDERS, PLAYER_COLORS } from './constants';
+import { SQUARES, PLAYER_COLORS } from './constants';
 
 const INITIAL_PLAYER: Player = { id: 1, name: 'Student', position: 1, color: '#00A8FF', score: 0 };
 
@@ -17,6 +17,7 @@ export default function App() {
     currentPlayerIndex: 0,
     status: 'idle',
     lastRoll: null,
+    targetPosition: null,
     currentSquare: null,
     rounds: [],
     isChallengeMode: false,
@@ -40,25 +41,28 @@ export default function App() {
       const roll = Math.floor(Math.random() * 6) + 1;
       let newPosition = currentPlayer.position + roll;
       
-      // Cap at 24
-      if (newPosition > 24) newPosition = 24;
+      // Wrap around for infinite play
+      if (newPosition > 24) {
+        newPosition = (newPosition % 24) || 1;
+      }
 
       // 2. Stop rolling, show dice value, and MOVE the token immediately
       setGameState(prev => ({
         ...prev,
         lastRoll: roll,
+        targetPosition: newPosition,
         status: 'moving',
         players: [{ ...prev.players[0], position: newPosition }]
       }));
 
-      // 3. Wait for token move animation + "Deep Breath" moment (1.5 seconds)
+      // 3. Wait for token move animation + "Deep Breath" moment (3 seconds)
       setTimeout(() => {
         setGameState(prev => ({
           ...prev,
           status: 'answering',
           currentSquare: SQUARES.find(s => s.id === newPosition) || null,
         }));
-      }, 1500);
+      }, 3000);
 
     }, 1200);
   };
@@ -70,21 +74,8 @@ export default function App() {
     let finalPosition = square.id;
     let nextRound = [...gameState.rounds];
 
-    if (LADDERS[finalPosition]) {
-      if (correct) {
-        finalPosition = LADDERS[finalPosition];
-      } else {
-        finalPosition = Math.max(1, finalPosition - 1);
-      }
-    } else if (SNAKES[finalPosition]) {
-      if (!correct) {
-        finalPosition = SNAKES[finalPosition];
-      } else {
-      }
-    } else {
-      if (!correct) {
-        finalPosition = Math.max(1, finalPosition - 1);
-      }
+    if (!correct) {
+      finalPosition = Math.max(1, finalPosition - 1);
     }
 
     nextRound.push({
@@ -95,26 +86,13 @@ export default function App() {
       player2Correct: null,
     });
 
-    const isGameOver = finalPosition === 24;
-
-    if (isGameOver) {
-      setTimeout(() => {
-        playVictorySound();
-        confetti({
-          particleCount: 250,
-          spread: 120,
-          origin: { y: 0.5 },
-          colors: [PLAYER_COLORS[0], '#F27D26', '#55E6C1', '#FF9F43']
-        });
-      }, 500);
-    }
-
     setGameState(prev => ({
       ...prev,
       players: [{ ...currentPlayer, position: finalPosition, score: currentPlayer.score + (correct ? 1 : 0) }],
       rounds: nextRound,
-      status: isGameOver ? 'finished' : 'idle',
+      status: 'idle',
       currentSquare: null,
+      targetPosition: null, // Reset dice to center
     }));
   };
 
@@ -124,6 +102,7 @@ export default function App() {
       currentPlayerIndex: 0,
       status: 'idle',
       lastRoll: null,
+      targetPosition: null,
       currentSquare: null,
       rounds: [],
       isChallengeMode: gameState.isChallengeMode,
@@ -195,63 +174,32 @@ export default function App() {
           <div className="bg-white border-[6px] border-board-border rounded-[44px] p-6 relative shadow-2xl flex items-center justify-center min-h-[850px] card-shadow">
             <Board 
               squares={SQUARES} 
-              playerPositions={[{ id: 1, position: currentPlayer.position, color: currentPlayer.color }]}
-            />
+              targetPosition={gameState.targetPosition}
+            >
+              <Dice 
+                value={gameState.lastRoll} 
+                onRoll={handleRoll} 
+                disabled={gameState.status !== 'idle'} 
+                rolling={gameState.status === 'rolling'}
+              />
+            </Board>
             
             <AnimatePresence>
-              {gameState.status === 'finished' && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  className="absolute inset-0 bg-primary/95 backdrop-blur-md rounded-[38px] z-40 flex flex-col items-center justify-center text-white p-8 text-center"
-                >
-                  <motion.div
-                    animate={{ rotate: [0, 10, -10, 10, 0], scale: [1, 1.1, 1] }}
-                    transition={{ repeat: Infinity, duration: 2 }}
-                  >
-                    <Trophy size={120} className="text-secondary mb-6 drop-shadow-[0_0_20px_rgba(242,125,38,0.5)]" />
-                  </motion.div>
-                  <h2 className="text-4xl font-black uppercase tracking-tighter mb-4">VICTORY FOR THE CLASS!</h2>
-                  <p className="text-xl opacity-90 font-medium mb-10 text-pretty">Amazing work! You've successfully conquered the Plural Power adventure!</p>
-                  
-                  <button
-                    onClick={resetGame}
-                    className="px-10 py-5 bg-white text-primary rounded-2xl font-black shadow-2xl hover:scale-110 transition-transform uppercase tracking-widest text-xl flex items-center gap-2"
-                  >
-                    <RotateCcw size={24} />
-                    Restart
-                  </button>
-                </motion.div>
-              )}
             </AnimatePresence>
           </div>
         </div>
 
         {/* Controls Section - Now below the board */}
         <div className="flex flex-col gap-6">
-          {/* Dice & Rules Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr,1.2fr] gap-6">
-            <div className="bg-white p-8 rounded-[32px] border-2 border-board-border shadow-sm flex flex-col items-center gap-6 card-shadow">
-               <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">TIME TO ROLL!</div>
-               <Dice 
-                  value={gameState.lastRoll} 
-                  onRoll={handleRoll} 
-                  disabled={gameState.status !== 'idle'} 
-                  rolling={gameState.status === 'rolling'}
-                />
-            </div>
-
-            <div className="bg-secondary text-white p-6 rounded-[32px] shadow-[0_10px_0_#E67E22] flex flex-col justify-center">
-              <h2 className="m-0 mb-3 text-lg font-black flex items-center gap-2 uppercase tracking-tight">
-                <Info size={24} /> Rules
-              </h2>
-              <ul className="m-0 pl-5 text-[15px] leading-snug list-disc space-y-2 font-bold opacity-95">
-                <li>Roll the dice & move.</li>
-                <li>Give the plural to stay.</li>
-                <li>Challenge Mode adds sentences!</li>
-              </ul>
-            </div>
+          <div className="bg-secondary text-white p-6 rounded-[32px] shadow-[0_10px_0_#E67E22] flex flex-col justify-center">
+            <h2 className="m-0 mb-3 text-lg font-black flex items-center gap-2 uppercase tracking-tight">
+              <Info size={24} /> Rules
+            </h2>
+            <ul className="m-0 pl-5 text-[15px] leading-snug list-disc space-y-2 font-bold opacity-95">
+              <li>Roll the dice & move.</li>
+              <li>Give the plural to stay.</li>
+              <li>Challenge Mode adds sentences!</li>
+            </ul>
           </div>
 
           {/* Progress Tracker */}

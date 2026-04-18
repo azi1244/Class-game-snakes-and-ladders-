@@ -20,6 +20,7 @@ export interface GameState {
   currentPlayerIndex: number;
   status: 'idle' | 'rolling' | 'moving' | 'answering' | 'finished';
   lastRoll: number | null;
+  targetPosition: number | null;
   currentSquare: SquareData | null;
   rounds: RoundRecord[];
   isChallengeMode: boolean;

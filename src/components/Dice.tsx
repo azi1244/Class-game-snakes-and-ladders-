@@ -1,5 +1,5 @@
-import { motion, AnimatePresence } from 'motion/react';
-import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6 } from 'lucide-react';
+import { motion } from 'motion/react';
+import React from 'react';
 
 interface DiceProps {
   value: number | null;
@@ -8,24 +8,50 @@ interface DiceProps {
   rolling: boolean;
 }
 
+const pipMap: Record<number, number[]> = {
+  1: [4],
+  2: [0, 8],
+  3: [0, 4, 8],
+  4: [0, 2, 6, 8],
+  5: [0, 2, 4, 6, 8],
+  6: [0, 2, 3, 5, 6, 8],
+};
+
+const Face = ({ value }: { value: number }) => (
+  <div className="absolute inset-0 w-full h-full bg-white border-2 border-gray-100 rounded-[1.5rem] flex items-center justify-center p-4 shadow-inner" 
+       style={{ backfaceVisibility: 'hidden', transformStyle: 'preserve-3d' }}>
+    <div className="grid grid-cols-3 grid-rows-3 gap-1.5 w-full h-full">
+      {[...Array(9)].map((_, i) => (
+        <div key={i} className="flex items-center justify-center">
+          {pipMap[value].includes(i) && (
+            <div className="w-3.5 h-3.5 rounded-full bg-primary shadow-sm" />
+          )}
+        </div>
+      ))}
+    </div>
+    {/* Shine */}
+    <div className="absolute top-1 left-2 w-8 h-4 bg-white/40 rounded-full blur-sm -rotate-45" />
+  </div>
+);
+
 export default function Dice({ value, onRoll, disabled, rolling }: DiceProps) {
-  // Pips positions for each dice value
-  const pipMap: Record<number, number[]> = {
-    1: [4],
-    2: [0, 8],
-    3: [0, 4, 8],
-    4: [0, 2, 6, 8],
-    5: [0, 2, 4, 6, 8],
-    6: [0, 2, 3, 5, 6, 8],
+  const getRotation = (v: number | null) => {
+    if (!v) return { rotateX: 20, rotateY: 20 };
+    switch (v) {
+      case 1: return { rotateX: 0, rotateY: 0 };
+      case 2: return { rotateX: 90, rotateY: 0 };
+      case 3: return { rotateX: 0, rotateY: -90 };
+      case 4: return { rotateX: 0, rotateY: 90 };
+      case 5: return { rotateX: -90, rotateY: 0 };
+      case 6: return { rotateX: 180, rotateY: 0 };
+      default: return { rotateX: 0, rotateY: 0 };
+    }
   };
 
-  const currentPips = value ? pipMap[value] : [4];
-
-  // Play sound effect
   const playRollSound = () => {
     const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3');
     audio.volume = 0.4;
-    audio.play().catch(e => console.log("Audio play blocked by browser policy until user interaction"));
+    audio.play().catch(() => {});
   };
 
   const handleRollClick = () => {
@@ -36,51 +62,76 @@ export default function Dice({ value, onRoll, disabled, rolling }: DiceProps) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <motion.div
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        animate={rolling ? {
-          rotateX: [0, 360, 720, 1080],
-          rotateY: [0, 360, 720, 1080],
-          scale: [1, 1.1, 1],
-          y: [0, -20, 0]
-        } : {}}
-        transition={rolling ? {
-          duration: 0.6,
-          repeat: Infinity,
-          ease: "linear"
-        } : {}}
-        className={`relative w-24 h-24 rounded-3xl bg-white shadow-xl flex items-center justify-center cursor-pointer border-4 border-board-border
-          ${disabled ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-2xl'}
-        `}
-        style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
+    <div className="flex flex-col items-center">
+      <div 
+        className="relative perspective-[1000px] w-24 h-24 mb-12 cursor-pointer group" 
         onClick={handleRollClick}
       >
         <motion.div
-          key={value}
-          initial={!rolling ? { rotateX: -90, scale: 0.5, opacity: 0 } : {}}
-          animate={!rolling ? { rotateX: 0, scale: 1, opacity: 1 } : {}}
-          transition={{ type: "spring", damping: 10, stiffness: 100 }}
-          className="w-16 h-16 grid grid-cols-3 grid-rows-3 gap-1 p-1"
-        >
-          {[...Array(9)].map((_, i) => (
-            <div key={i} className="flex items-center justify-center">
-              {currentPips.includes(i) && (
-                <div className="w-3.5 h-3.5 rounded-full bg-primary shadow-inner" />
-              )}
-            </div>
-          ))}
+  animate={rolling ? {
+    rotateX: [0, 720, 1440, 2160, 2880],
+    rotateY: [0, 360, 1080, 1800, 2520],
+    scale: [1, 1.3, 0.8, 1.2, 1],
+    transition: {
+      duration: 1.2,
+      ease: "easeInOut",
+      repeat: Infinity
+    }
+  } : {
+    ...getRotation(value),
+    transition: { type: 'spring', damping: 15, stiffness: 150 }
+  }}
+  className="w-full h-full relative"
+  style={{ transformStyle: 'preserve-3d' }}
+>
+          {/* Face 1 - Front */}
+          <div style={{ transform: 'translateZ(48px)' }} className="absolute inset-0">
+            <Face value={1} />
+          </div>
+          {/* Face 6 - Back */}
+          <div style={{ transform: 'rotateX(180deg) translateZ(48px)' }} className="absolute inset-0">
+            <Face value={6} />
+          </div>
+          {/* Face 2 - Top */}
+          <div style={{ transform: 'rotateX(-90deg) translateZ(48px)' }} className="absolute inset-0">
+            <Face value={2} />
+          </div>
+          {/* Face 5 - Bottom */}
+          <div style={{ transform: 'rotateX(90deg) translateZ(48px)' }} className="absolute inset-0">
+            <Face value={5} />
+          </div>
+          {/* Face 3 - Left */}
+          <div style={{ transform: 'rotateY(90deg) translateZ(48px)' }} className="absolute inset-0">
+            <Face value={3} />
+          </div>
+          {/* Face 4 - Right */}
+          <div style={{ transform: 'rotateY(-90deg) translateZ(48px)' }} className="absolute inset-0">
+            <Face value={4} />
+          </div>
         </motion.div>
-      </motion.div>
-      
-      <button
-        disabled={disabled}
-        onClick={handleRollClick}
-        className="w-full py-4 bg-primary text-white rounded-2xl font-black shadow-lg hover:bg-sky-500 disabled:bg-gray-300 transition-all uppercase tracking-widest text-[11px] ring-4 ring-primary/10"
-      >
-        {rolling ? 'Rolling...' : 'Roll for Turn'}
-      </button>
+
+        {/* Dynamic Shadow */}
+        <motion.div 
+          animate={rolling ? {
+            scale: [1, 0.5, 1.2, 0.6, 1],
+            opacity: [0.2, 0.1, 0.3, 0.1, 0.2]
+          } : {
+            scale: 1,
+            opacity: 0.2
+          }}
+          className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-20 h-4 bg-black rounded-full blur-lg"
+        />
+      </div>
+
+      {!disabled && !rolling && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-primary px-4 py-2 rounded-xl text-white text-xs font-black uppercase tracking-widest shadow-lg hover:bg-primary/90 transition-all border-b-4 border-primary/20 active:border-b-0 active:translate-y-1"
+        >
+          Your Turn • Roll
+        </motion.div>
+      )}
     </div>
   );
 }
