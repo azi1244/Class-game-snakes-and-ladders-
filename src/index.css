@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Helvetica Neue', Arial, sans-serif;
+  
+  --color-primary: #00A8FF;
+  --color-secondary: #FF9F43;
+  --color-accent-green: #55E6C1;
+  --color-accent-red: #FF4757;
+  --color-board-border: #DFE6E9;
+  --color-square-bg: #F1F2F6;
+  --color-app-bg: #FFF9E6;
+  --color-ink: #2D3436;
+}
+
+body {
+  @apply bg-app-bg text-ink;
+  background-image: radial-gradient(#FF9F43 0.5px, transparent 0.5px);
+  background-size: 24px 24px;
+}
+
+.card-shadow {
+  box-shadow: 0 12px 0 #DFE6E9, 0 20px 40px rgba(0,0,0,0.1);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 4px solid white;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #DFE6E9;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #00A8FF;
+}
